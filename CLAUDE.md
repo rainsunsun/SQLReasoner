@@ -15,6 +15,8 @@ understand（需求分析）→ plan（规划拆 SQL）→ execute（**真执行
 - `app/graph/workflow.py`：LangGraph 编排
 - `app/tools/db.py`：`execute_sql` 真执行 DuckDB（read_only 连接）
 - `app/models.py` / `app/state.py`：Pydantic 领域模型 + 共享 state
+- `app/server.py`：FastAPI 后端（/ask /review 两阶段 HITL）
+- `tests/`：pytest 单测；`pyproject.toml`：依赖 + ruff 配置；`.github/workflows/`：CI
 - `data/analytics.duckdb`：77MB，108,537 条真实 GitHub 事件（2026-09-01 00:00~02:00）
 - `data/load_data.py`：从 GH Archive 下载并建表（`created_at` 存 TIMESTAMP 是踩坑后的修法）
 - `data/eval/`：评估集 + 报告
@@ -32,6 +34,7 @@ D:\学习日志\agent_qz\.venv\Scripts\python.exe data/load_data.py --date 2026-
 ```
 
 正式环境用 `pip install -e ".[dev]"`（见 pyproject.toml），别长期借用 agent_qz 的 venv。
+后端服务：`D:\学习日志\agent_qz\.venv\Scripts\python.exe -m uvicorn app.server:app --reload`（/ask + /review 两阶段 HITL，见 README「后端服务」）。
 
 `.env` 里有 DeepSeek API key（git 已忽略）。终端中文乱码是 GBK 显示问题，代码里已 `sys.stdout.reconfigure(utf-8)`，报告以 `data/eval/eval_report.md` 为准。
 

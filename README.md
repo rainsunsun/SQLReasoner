@@ -52,6 +52,7 @@
 | 层 | 选型 |
 |---|---|
 | 编排 | LangGraph（StateGraph + MemorySaver + interrupt） |
+| 服务 | FastAPI + uvicorn（/ask 两阶段 HITL） |
 | LLM | OpenAI 兼容接口（DeepSeek，可切 Claude/Qwen/GLM） |
 | 结构化输出 | Pydantic + `with_structured_output` |
 | 数据仓库 | DuckDB（read_only 只读连接） |
@@ -68,6 +69,7 @@ app/
   tools/          # db.py：execute_sql 真执行
   models.py       # Pydantic 领域模型
   state.py        # 共享 state
+  server.py       # FastAPI 后端（/ask /review 两阶段 HITL）
 data/
   analytics.duckdb  # 108,537 条真实事件（2026-09-01 00:00~02:00）
   load_data.py      # 从 GH Archive 下载建表
@@ -75,7 +77,7 @@ data/
 evaluate.py         # 三组对照评估（多 agent vs 单 LLM vs 无修复）
 evaluate_repair.py  # self-repair 压力测试
 main.py             # CLI 入口
-tests/              # pytest 单测（config / db / models / workflow / llm）
+tests/              # pytest 单测（config / db / models / workflow / llm / server）
 pyproject.toml      # 依赖 + pytest/ruff 配置
 .github/workflows/  # CI：push 自动跑 ruff + pytest
 docs/RESUME.md      # 简历 + 面试钩子
@@ -117,6 +119,23 @@ python data/load_data.py --date 2026-09-01 --hours 24   # 扩数据（拉更多�
 
 - self-repair 压力测试：8 条注入错误 SQL，修复率 **8/8**。
 - 基线 0% 的根因：单 LLM 一次调用同时生成 SQL 和答案，答案写于「看到查询结果之前」，只能编数字 —— **「SQL 能跑 ≠ 结论对」**。
+
+## 后端服务（HTTP API）
+
+把 human-in-the-loop 从 CLI 的 `input()` 变成真正的 HTTP 两阶段服务：
+
+```bash
+uvicorn app.server:app --reload
+```
+
+| 接口 | 说明 |
+|---|---|
+| `POST /ask` | `{question, thread_id?}` → 跑到「完成」或「触发人工复核」就返回 |
+| `POST /review` | `{thread_id, decision: accept/reject}` → 恢复 interrupt 继续跑 |
+| `GET /health` | 健康检查 |
+
+- `/ask` 返回 `{thread_id, status: done 或 needs_review, report?, review?}`；`status=needs_review` 时把 `review` 交人工确认，再 `/review` 回传决定。
+- 每个 `thread_id` 对应一次独立会话的 checkpoint 状态（`MemorySaver` 内存态，单进程内有效）。
 
 ## 工程化与稳健性
 
