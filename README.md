@@ -86,6 +86,7 @@ tests/              # pytest 单测（config / db / models / workflow / llm / se
 pyproject.toml      # 依赖 + pytest/ruff 配置
 .github/workflows/  # CI：push 自动跑 ruff + pytest
 docs/RESUME.md      # 简历 + 面试钩子
+docs/QA20.md        # 面试 QA 20 问
 ```
 
 ## 快速开始

@@ -20,7 +20,7 @@ understand（需求分析）→ link（**schema linking** 精筛表列）→ pla
 - `data/analytics.duckdb`：events 事实表（108,537 条）+ repos/actors 维度表（2026-09-01 00:00~02:00）
 - `data/load_data.py`：从 GH Archive 下载建表（events + 派生 repos/actors 维度表；`created_at` 存 TIMESTAMP 是踩坑后的修法）
 - `data/eval/`：评估集 + 报告
-- `docs/RESUME.md`：简历 + 评估结果 + 面试钩子
+- `docs/RESUME.md`：简历 + 评估结果 + 面试钩子；`docs/QA20.md`：面试 QA 20 问
 
 ## 怎么跑（项目独立 uv 环境 `.venv`，依赖从 pyproject 安装，不借用任何别的 venv）
 
