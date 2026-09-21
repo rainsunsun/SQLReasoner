@@ -8,11 +8,16 @@
 """
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
+
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from app.agents import executor, planner, reporter, understand, verifier
+from app.config import CHECKPOINT_PATH
 from app.state import AnalystState
 
 
@@ -72,7 +77,8 @@ def _route_review(state: AnalystState) -> str:
     return END
 
 
-def build_graph():
+def build_graph(checkpointer=None):
+    """构建流水线图。默认用内存 checkpoint（单次运行/测试），可注入任意 checkpointer。"""
     g = StateGraph(AnalystState)
     g.add_node("understand", _understand_node)
     g.add_node("plan", _plan_node)
@@ -89,4 +95,13 @@ def build_graph():
     g.add_conditional_edges("report", _route_report, {"review": "review", END: END})
     g.add_conditional_edges("review", _route_review, {"plan": "plan", END: END})
 
-    return g.compile(checkpointer=MemorySaver())
+    return g.compile(checkpointer=checkpointer or MemorySaver())
+
+
+def build_persistent_graph(db_path: str | Path | None = None):
+    """SQLite 持久化 checkpoint：会话状态落盘，服务重启 / 多实例不丢。"""
+    target = Path(db_path) if db_path is not None else CHECKPOINT_PATH
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # check_same_thread=False：FastAPI 线程池里不同线程共享连接；checkpoint 表由 saver 懒建
+    conn = sqlite3.connect(str(target), check_same_thread=False)
+    return build_graph(checkpointer=SqliteSaver(conn))

@@ -16,7 +16,7 @@ from fastapi import FastAPI, HTTPException
 from langgraph.types import Command
 from pydantic import BaseModel, Field
 
-from app.graph.workflow import build_graph
+from app.graph.workflow import build_persistent_graph
 from app.models import AnalysisReport
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,8 @@ def _invoke(graph, state, config) -> tuple[dict, str, dict | None]:
 
 def create_app(graph=None) -> FastAPI:
     app = FastAPI(title="SQLReasoner", version="0.1.0")
-    g = graph if graph is not None else build_graph()
+    # 默认 SQLite 持久化：会话 checkpoint 落盘，服务重启不丢状态
+    g = graph if graph is not None else build_persistent_graph()
 
     @app.get("/health")
     def health() -> dict:

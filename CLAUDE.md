@@ -12,7 +12,7 @@ understand（需求分析）→ plan（规划拆 SQL）→ execute（**真执行
 ## 目录结构
 
 - `app/agents/`：5 个 agent（understand / planner / executor / verifier / reporter）
-- `app/graph/workflow.py`：LangGraph 编排
+- `app/graph/workflow.py`：LangGraph 编排（`build_graph` 内存态 / `build_persistent_graph` SQLite 持久化 checkpoint）
 - `app/tools/db.py`：`execute_sql` 真执行 DuckDB（read_only 连接）
 - `app/models.py` / `app/state.py`：Pydantic 领域模型 + 共享 state
 - `app/server.py`：FastAPI 后端（/ask /review 两阶段 HITL）
@@ -28,7 +28,7 @@ understand（需求分析）→ plan（规划拆 SQL）→ execute（**真执行
 D:\学习日志\agent_qz\.venv\Scripts\python.exe main.py "问题"          # 单次问问题
 D:\学习日志\agent_qz\.venv\Scripts\python.exe evaluate.py             # 跑 12 问评估
 D:\学习日志\agent_qz\.venv\Scripts\python.exe evaluate_repair.py      # self-repair 压力测试
-D:\学习日志\agent_qz\.venv\Scripts\python.exe -m pytest -q             # 单元测试（17 个）
+D:\学习日志\agent_qz\.venv\Scripts\python.exe -m pytest -q             # 单元测试（24 个）
 D:\学习日志\agent_qz\.venv\Scripts\python.exe -m ruff check .          # 代码检查
 D:\学习日志\agent_qz\.venv\Scripts\python.exe data/load_data.py --date 2026-09-01 --hours 2  # 扩数据
 ```

@@ -135,7 +135,7 @@ uvicorn app.server:app --reload
 | `GET /health` | 健康检查 |
 
 - `/ask` 返回 `{thread_id, status: done 或 needs_review, report?, review?}`；`status=needs_review` 时把 `review` 交人工确认，再 `/review` 回传决定。
-- 每个 `thread_id` 对应一次独立会话的 checkpoint 状态（`MemorySaver` 内存态，单进程内有效）。
+- 每个 `thread_id` 对应一次独立会话的 checkpoint 状态，SQLite 持久化到 `data/checkpoints.sqlite`（`SqliteSaver`），服务重启 / 多实例不丢。
 
 ## 工程化与稳健性
 

@@ -15,6 +15,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DB_PATH = DATA_DIR / "analytics.duckdb"
+CHECKPOINT_PATH = DATA_DIR / "checkpoints.sqlite"  # HITL 会话状态落盘
 
 # 先加载 .env 到环境变量（文件不存在时静默跳过），Settings 再统一读取
 load_dotenv(BASE_DIR / ".env")

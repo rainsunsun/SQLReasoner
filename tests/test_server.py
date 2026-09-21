@@ -16,14 +16,14 @@ def _fake_graph(result):
 
 
 def test_health():
-    client = TestClient(create_app())
+    client = TestClient(create_app(_fake_graph({})))
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
 
 
 def test_ask_empty_question_rejected():
-    client = TestClient(create_app())
+    client = TestClient(create_app(_fake_graph({})))
     resp = client.post("/ask", json={"question": ""})
     assert resp.status_code == 422
 
@@ -65,6 +65,6 @@ def test_ask_review_then_resume():
 
 
 def test_review_invalid_decision_rejected():
-    client = TestClient(create_app())
+    client = TestClient(create_app(_fake_graph({})))
     resp = client.post("/review", json={"thread_id": "t", "decision": "maybe"})
     assert resp.status_code == 422
