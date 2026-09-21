@@ -3,12 +3,20 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-from app.models import AnalysisGoal, AnalysisReport, QueryPlan, QueryResult, Verification
+from app.models import (
+    AnalysisGoal,
+    AnalysisReport,
+    LinkedSchema,
+    QueryPlan,
+    QueryResult,
+    Verification,
+)
 
 
 class AnalystState(TypedDict, total=False):
     question: str                       # 用户原始业务问题
     goal: AnalysisGoal                  # 需求分析结果
+    linked_schema: LinkedSchema         # schema linking 结果（问题相关的表列子集）
     plan: QueryPlan                     # 查询计划
     results: list[QueryResult]          # 查询结果（真实数据，可能多步）
     verification: Verification          # 校验结果

@@ -11,6 +11,7 @@ from app.config import settings
 from app.llm import invoke_structured
 from app.models import QueryPlan, QueryResult, QueryStep
 from app.tools.db import execute_sql
+from app.tools.schema import get_schema_text
 
 
 class _FixedSQL(BaseModel):
@@ -22,23 +23,20 @@ class _FixedSQL(BaseModel):
 
 _FIX_SYSTEM = """你是 SQL 修正专家。下面有一条执行失败的 SQL 和报错信息，请修正它。
 
-数据表 events 结构：
-- id VARCHAR, type VARCHAR, actor_login VARCHAR, repo_name VARCHAR
-- created_at TIMESTAMP（时间戳类型，过滤直接用 created_at >= '2026-09-01 00:00:00'）
-- action VARCHAR, payload VARCHAR（JSON 字符串）
-
 修正要求：
 1. 只输出能修复报错的 SQL，保持原有分析意图不变
 2. 字段名/语法错误就改正；类型问题就加正确的 CAST
-3. 不要改成与原意图无关的查询
+3. 只使用「数据 schema」里真实存在的表和列，不要编造
+4. 不要改成与原意图无关的查询
 """
 
 
 def _fix_sql(step: QueryStep, error: str) -> str:
+    schema_text = get_schema_text()  # 修正时读完整 schema（报错可能涉及未被精选的列）
     out = invoke_structured(
         _FixedSQL,
         _FIX_SYSTEM,
-        f"原 SQL：\n{step.sql}\n\n报错：\n{error}",
+        f"数据 schema：\n{schema_text}\n\n原 SQL：\n{step.sql}\n\n报错：\n{error}",
     )
     return out.sql
 

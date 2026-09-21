@@ -7,8 +7,8 @@ from app.models import AnalysisGoal
 _SYSTEM = """你是数据分析团队的需求分析师。用户会提出一个关于 GitHub 开源活动数据的业务问题，
 你要把它翻译成清晰、可执行的分析目标。
 
-数据背景：一张 events 表，记录 GitHub 公开事件（push 提交、issue 创建/关闭、PR、watch、fork 等），
-字段：id, type(事件类型), actor_login(用户名), repo_name(仓库名), created_at(时间), action(动作), payload(载荷JSON)。
+数据背景：GitHub 公开事件数据（push 提交、issue 创建/关闭、PR、watch、fork 等），
+含事件事实表和仓库、用户维度表。
 
 要求：
 - objective 用一句话说清要回答什么

@@ -9,6 +9,7 @@
 - **真执行**：执行 Agent 的 SQL 真实跑在 DuckDB 上（`read_only` 连接代码层兜底），查询结果结构化回流、不经 LLM 字符串转述，杜绝编造数字。
 - **SQL 自我修复**：执行失败 → 报错回流 → LLM 结构化修正 → 重跑（上限 3 次）。
 - **human-in-the-loop**：校验不过或结论低置信时 `interrupt` 中断人工复核，拒绝则回环重跑。
+- **schema linking**：schema 运行时从 DuckDB `information_schema` 动态读（单一事实来源，去硬编码），linker 按问题精筛相关表列再喂给规划 agent（防幻觉、防引用不存在的列）。
 - **有评估、有基线**：自建 12 问标注集 + 单 LLM 基线 ablation，用数据证明「拆 agent + 结果回流」的价值。
 
 ## 架构
@@ -18,6 +19,9 @@
     │
     ▼
 [understand 需求分析] ──► AnalysisGoal
+    │
+    ▼
+[link schema linking] ──► LinkedSchema（相关表列）
     │
     ▼
 [plan 规划拆 SQL] ──► QueryPlan
@@ -41,7 +45,8 @@
 ```
 
 - **understand**：把业务问题翻译成可执行的分析目标（指标/维度/过滤/输出形式）。
-- **plan**：把目标拆成按序执行的只读 SELECT。
+- **link**：schema linking —— 把问题映射到相关表/列子集 + join 关系，只把必需 schema 交给规划 agent。
+- **plan**：基于精选 schema 把目标拆成按序执行的只读 SELECT。
 - **execute**：真执行 SQL；失败时把报错原样回流给 LLM 修正后重跑（self-repair）。
 - **verify**：校验结果合理性（是否为空、量级是否合理、是否回答了问题）。
 - **report**：把结果解读成带真实数字的结论 + 置信度。
@@ -51,7 +56,7 @@
 
 | 层 | 选型 |
 |---|---|
-| 编排 | LangGraph（StateGraph + MemorySaver + interrupt） |
+| 编排 | LangGraph（StateGraph + SqliteSaver 持久化 checkpoint + interrupt） |
 | 服务 | FastAPI + uvicorn（/ask 两阶段 HITL） |
 | LLM | OpenAI 兼容接口（DeepSeek，可切 Claude/Qwen/GLM） |
 | 结构化输出 | Pydantic + `with_structured_output` |
@@ -64,15 +69,15 @@
 
 ```
 app/
-  agents/         # 5 个 agent：understand / planner / executor / verifier / reporter
+  agents/         # 6 个 agent：understand / linker / planner / executor / verifier / reporter
   graph/          # workflow.py：LangGraph 编排
-  tools/          # db.py：execute_sql 真执行
-  models.py       # Pydantic 领域模型
+  tools/          # db.py：execute_sql 真执行；schema.py：动态读表结构
+  models.py       # Pydantic 领域模型（含 LinkedSchema）
   state.py        # 共享 state
   server.py       # FastAPI 后端（/ask /review 两阶段 HITL）
 data/
-  analytics.duckdb  # 108,537 条真实事件（2026-09-01 00:00~02:00）
-  load_data.py      # 从 GH Archive 下载建表
+  analytics.duckdb  # 108,537 条真实事件 + repos/actors 维度表（2026-09-01 00:00~02:00）
+  load_data.py      # 从 GH Archive 下载建表（events + 派生维度表）
   eval/             # 评估集 questions.py + 报告 eval_report.md
 evaluate.py         # 三组对照评估（多 agent vs 单 LLM vs 无修复）
 evaluate_repair.py  # self-repair 压力测试

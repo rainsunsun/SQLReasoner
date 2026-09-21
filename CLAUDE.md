@@ -4,37 +4,41 @@
 核心卖点是「真执行去 toy 化」——LLM 生成的 SQL 真的跑在 DuckDB 上、结果结构化回流、报错回流自我修正，
 而不是「假装写代码」。
 
-## 五个 Agent（LangGraph 流水线）
+## 六个 Agent（LangGraph 流水线）
 
-understand（需求分析）→ plan（规划拆 SQL）→ execute（**真执行 SQL + self-repair**）→ verify（校验）→ report（报告）
+understand（需求分析）→ link（**schema linking** 精筛表列）→ plan（规划拆 SQL）→ execute（**真执行 SQL + self-repair**）→ verify（校验）→ report（报告）
 → 低置信/校验不过时 `interrupt` 人工复核，拒绝则回环到 plan 重跑（上限 2 次防死循环）。
 
 ## 目录结构
 
-- `app/agents/`：5 个 agent（understand / planner / executor / verifier / reporter）
+- `app/agents/`：6 个 agent（understand / linker / planner / executor / verifier / reporter）
 - `app/graph/workflow.py`：LangGraph 编排（`build_graph` 内存态 / `build_persistent_graph` SQLite 持久化 checkpoint）
-- `app/tools/db.py`：`execute_sql` 真执行 DuckDB（read_only 连接）
+- `app/tools/db.py`：`execute_sql` 真执行 DuckDB（read_only 连接）；`app/tools/schema.py`：从 information_schema 动态读表结构（去硬编码）
 - `app/models.py` / `app/state.py`：Pydantic 领域模型 + 共享 state
 - `app/server.py`：FastAPI 后端（/ask /review 两阶段 HITL）
 - `tests/`：pytest 单测；`pyproject.toml`：依赖 + ruff 配置；`.github/workflows/`：CI
-- `data/analytics.duckdb`：77MB，108,537 条真实 GitHub 事件（2026-09-01 00:00~02:00）
-- `data/load_data.py`：从 GH Archive 下载并建表（`created_at` 存 TIMESTAMP 是踩坑后的修法）
+- `data/analytics.duckdb`：events 事实表（108,537 条）+ repos/actors 维度表（2026-09-01 00:00~02:00）
+- `data/load_data.py`：从 GH Archive 下载建表（events + 派生 repos/actors 维度表；`created_at` 存 TIMESTAMP 是踩坑后的修法）
 - `data/eval/`：评估集 + 报告
 - `docs/RESUME.md`：简历 + 评估结果 + 面试钩子
 
-## 怎么跑（本项目复用 agent_qz 的 venv，duckdb/langgraph/langchain 都装在那里）
+## 怎么跑（项目独立 uv 环境 `.venv`，依赖从 pyproject 安装，不借用任何别的 venv）
 
 ```bash
-D:\学习日志\agent_qz\.venv\Scripts\python.exe main.py "问题"          # 单次问问题
-D:\学习日志\agent_qz\.venv\Scripts\python.exe evaluate.py             # 跑 12 问评估
-D:\学习日志\agent_qz\.venv\Scripts\python.exe evaluate_repair.py      # self-repair 压力测试
-D:\学习日志\agent_qz\.venv\Scripts\python.exe -m pytest -q             # 单元测试（24 个）
-D:\学习日志\agent_qz\.venv\Scripts\python.exe -m ruff check .          # 代码检查
-D:\学习日志\agent_qz\.venv\Scripts\python.exe data/load_data.py --date 2026-09-01 --hours 2  # 扩数据
+.venv\Scripts\python.exe main.py "问题"          # 单次问问题
+.venv\Scripts\python.exe evaluate.py             # 跑 12 问评估
+.venv\Scripts\python.exe evaluate_repair.py      # self-repair 压力测试
+.venv\Scripts\python.exe -m pytest -q             # 单元测试（27 个）
+.venv\Scripts\python.exe -m ruff check .          # 代码检查
+.venv\Scripts\python.exe data/load_data.py --date 2026-09-01 --hours 2  # 扩数据
 ```
 
-正式环境用 `pip install -e ".[dev]"`（见 pyproject.toml），别长期借用 agent_qz 的 venv。
-后端服务：`D:\学习日志\agent_qz\.venv\Scripts\python.exe -m uvicorn app.server:app --reload`（/ask + /review 两阶段 HITL，见 README「后端服务」）。
+环境重建（换机器 / 清空后）：
+```bash
+uv venv
+uv pip install --python .venv\Scripts\python.exe -e ".[dev]"
+```
+后端服务：`.venv\Scripts\python.exe -m uvicorn app.server:app --reload`（/ask + /review 两阶段 HITL，见 README「后端服务」）。
 
 `.env` 里有 DeepSeek API key（git 已忽略）。终端中文乱码是 GBK 显示问题，代码里已 `sys.stdout.reconfigure(utf-8)`，报告以 `data/eval/eval_report.md` 为准。
 

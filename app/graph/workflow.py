@@ -16,17 +16,24 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
-from app.agents import executor, planner, reporter, understand, verifier
+from app.agents import executor, linker, planner, reporter, understand, verifier
 from app.config import CHECKPOINT_PATH
 from app.state import AnalystState
+from app.tools.schema import get_schema_text
 
 
 def _understand_node(state: AnalystState) -> dict:
     return {"goal": understand.understand(state["question"])}
 
 
+def _link_node(state: AnalystState) -> dict:
+    """schema linking：按问题精筛相关表列，只把必需 schema 交给规划 agent。"""
+    schema_text = get_schema_text()
+    return {"linked_schema": linker.link(state["question"], state["goal"], schema_text)}
+
+
 def _plan_node(state: AnalystState) -> dict:
-    return {"plan": planner.plan(state["goal"])}
+    return {"plan": planner.plan(state["goal"], state["linked_schema"])}
 
 
 def _execute_node(state: AnalystState) -> dict:
@@ -81,6 +88,7 @@ def build_graph(checkpointer=None):
     """构建流水线图。默认用内存 checkpoint（单次运行/测试），可注入任意 checkpointer。"""
     g = StateGraph(AnalystState)
     g.add_node("understand", _understand_node)
+    g.add_node("link", _link_node)
     g.add_node("plan", _plan_node)
     g.add_node("execute", _execute_node)
     g.add_node("verify", _verify_node)
@@ -88,7 +96,8 @@ def build_graph(checkpointer=None):
     g.add_node("review", _review_node)
 
     g.add_edge(START, "understand")
-    g.add_edge("understand", "plan")
+    g.add_edge("understand", "link")
+    g.add_edge("link", "plan")
     g.add_edge("plan", "execute")
     g.add_edge("execute", "verify")
     g.add_edge("verify", "report")

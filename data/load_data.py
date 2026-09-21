@@ -94,6 +94,25 @@ def load(rows: list[dict], db_path: Path) -> None:
             for r in rows
         ],
     )
+    # 派生维度表：为 schema linking 提供真实多表结构（repos/actors 从 events 去重）
+    con.execute(
+        """
+        CREATE OR REPLACE TABLE repos AS
+        SELECT DISTINCT
+            repo_name AS name,
+            split_part(repo_name, '/', 1) AS owner,
+            split_part(repo_name, '/', 2) AS repo
+        FROM events WHERE repo_name IS NOT NULL
+        """
+    )
+    con.execute(
+        """
+        CREATE OR REPLACE TABLE actors AS
+        SELECT DISTINCT actor_login AS login
+        FROM events WHERE actor_login IS NOT NULL
+        """
+    )
+
     n = con.execute("SELECT count(*) FROM events").fetchone()[0]
     print(f"\n=== 已加载 {n:,} 条真实事件到 {db_path.name} ===")
     print("事件类型分布（Top 10）：")

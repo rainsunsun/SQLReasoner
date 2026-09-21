@@ -14,6 +14,23 @@ class AnalysisGoal(BaseModel):
     output_format: str = Field(description="期望输出形式：表格/趋势/对比/排名")
 
 
+class LinkedTable(BaseModel):
+    """schema linking 输出的单张相关表及所需列。"""
+
+    table: str = Field(description="表名")
+    columns: list[str] = Field(description="这张表里回答问题需要用到的列名")
+    reason: str = Field(description="为什么需要这张表/这些列")
+
+
+class LinkedSchema(BaseModel):
+    """schema linking 的输出：问题相关的表列子集，供规划 agent 写 SQL。"""
+
+    tables: list[LinkedTable] = Field(description="问题相关的表及列")
+    join_hints: list[str] = Field(
+        default_factory=list, description="表间如何 join 的提示（如 events.repo_name = repos.name）"
+    )
+
+
 class QueryStep(BaseModel):
     """规划 agent 输出的单个查询步骤。"""
 
