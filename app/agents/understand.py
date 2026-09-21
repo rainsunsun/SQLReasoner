@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from app.llm import invoke_structured
 from app.models import AnalysisGoal
+from app.tools.schema import get_overview
 
 _SYSTEM = """你是数据分析团队的需求分析师。用户会提出一个关于 GitHub 开源活动数据的业务问题，
 你要把它翻译成清晰、可执行的分析目标。
 
 数据背景：GitHub 公开事件数据（push 提交、issue 创建/关闭、PR、watch、fork 等），
 含事件事实表和仓库、用户维度表。
+{overview}
 
 要求：
 - objective 用一句话说清要回答什么
@@ -20,4 +22,5 @@ _SYSTEM = """你是数据分析团队的需求分析师。用户会提出一个�
 
 
 def understand(question: str) -> AnalysisGoal:
-    return invoke_structured(AnalysisGoal, _SYSTEM, question)
+    overview = get_overview() or "（数据时间范围未知，涉及时间的问题请谨慎处理）"
+    return invoke_structured(AnalysisGoal, _SYSTEM.format(overview=overview), question)

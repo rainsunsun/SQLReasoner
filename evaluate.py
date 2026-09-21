@@ -24,10 +24,11 @@ from pathlib import Path
 from langgraph.types import Command
 from pydantic import BaseModel, Field
 
-from app.agents import planner, understand
+from app.agents import linker, planner, understand
 from app.graph.workflow import build_graph
 from app.llm import get_llm
 from app.tools.db import execute_sql
+from app.tools.schema import get_schema_text
 from data.eval.questions import QUESTIONS
 
 # Windows 终端默认 GBK，强制 UTF-8 避免中文/符号打印报错（必须在任何 print 之前）
@@ -92,9 +93,10 @@ def multi_agent(question: str, idx: int) -> dict:
 # ---------- 配置 C：多 agent 原始 SQL 但无 self-repair ----------
 
 def no_repair(question: str) -> bool:
-    """只走 understand + plan 出 SQL，直接执行一次，失败就算失败（不修复）。"""
+    """只走 understand + link + plan 出 SQL，直接执行一次，失败就算失败（不修复）。"""
     goal = understand.understand(question)
-    plan = planner.plan(goal)
+    linked = linker.link(question, goal, get_schema_text())
+    plan = planner.plan(goal, linked)
     if not plan.steps:
         return False
     return all(execute_sql(step.sql).success for step in plan.steps)

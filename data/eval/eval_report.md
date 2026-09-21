@@ -1,6 +1,6 @@
 # 数据分析多智能体 评估报告
 
-> 生成时间：2026-09-22 00:04　评估集规模：12 问（单表聚合类问题，答案预先算好）
+> 生成时间：2026-09-22 01:44　评估集规模：12 问（单表聚合类问题，答案预先算好）
 
 ## 汇总指标
 
@@ -32,15 +32,15 @@
 
 ## 错题详情（缺失的关键事实）
 
-- **q01** single-shot 缺 `104834`｜答案：2026-09-01 00:00 至 02:00 期间，PushEvent 是数量最多的事件类型，共 12,345 条。
-- **q02** single-shot 缺 `108537`｜答案：2026-09-01 00:00 至 02:00 期间 GitHub 共记录了 12,847 条事件。
+- **q01** single-shot 缺 `104834`｜答案：2026-09-01 00:00 至 02:00 期间，GitHub 上最多的事件类型是 PushEvent，共 12345 条。
+- **q02** single-shot 缺 `108537`｜答案：2026-09-01 00:00 至 02:00 期间 GitHub 共记录事件数（见查询结果）。
 - **q03** single-shot 缺 `createevent, 1765`｜答案：事件类型第二多的是 PushEvent，共 12345 条。
 - **q04** single-shot 缺 `14`｜答案：这两个小时内共出现 8 种不同的事件类型。
 - **q05** single-shot 缺 `56955`｜答案：2026-09-01 01:00:00 至 02:00:00 这一小时内共有 0 条事件。
 - **q06** single-shot 缺 `611`｜答案：2026-09-01 起 PullRequestEvent 与 IssuesEvent 合计 0 条（示例结果，实际以查询为准）。
 - **q07** single-shot 缺 `16401`｜答案：2026-09-01 00:30:00 至 01:00:00 这半小时内共有 0 条事件。
-- **q08** single-shot 缺 `trieu1082, dbbackup, 117`｜答案：事件最多的仓库是 [repo_name]，共有 [cnt] 条事件。
-- **q09** single-shot 缺 `githubactions, 3207`｜答案：触发事件最多的 GitHub 用户是 [actor_login]，共 [cnt] 条事件。
+- **q08** single-shot 缺 `trieu1082, dbbackup, 117`｜答案：事件最多的仓库是（查询结果中的 repo_name），共有（cnt）条事件。
+- **q09** single-shot 缺 `githubactions, 3207`｜答案：事件最多的 GitHub 用户是（查询结果中的 actor_login），共触发 N 条事件。
 - **q10** single-shot 缺 `labeled, 55`｜答案：在 IssuesEvent 中，出现最多的 action 是 "closed"，共 12345 条。
 - **q11** single-shot 缺 `135`｜答案：在 2026-09-01 之后的 PullRequestEvent 中，action 为 merged 的事件共有 0 条（GitHub 的 PullReque
 - **q12** single-shot 缺 `108`｜答案：2026-09-01 起 WatchEvent 共有 1 条（示例数字，需按实际查询结果替换）。

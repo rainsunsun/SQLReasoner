@@ -54,6 +54,26 @@ def _describe(table: str, column: str, col_type: str) -> str:
     return f"- {column} {col_type}：{desc}" if desc else f"- {column} {col_type}"
 
 
+def get_overview(db_path: str | Path | None = None) -> str | None:
+    """读数据时间范围/规模，给 agent 一个数据概览（避免 LLM 幻觉时间范围）。"""
+    target = Path(db_path) if db_path is not None else DB_PATH
+    try:
+        with duckdb.connect(str(target), read_only=True) as con:
+            has_col = con.execute(
+                "SELECT count(*) FROM information_schema.columns "
+                "WHERE table_name='events' AND column_name='created_at'"
+            ).fetchone()[0]
+            if not has_col:
+                return None
+            n, mn, mx = con.execute(
+                "SELECT count(*), min(created_at), max(created_at) FROM events"
+            ).fetchone()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("读数据概览失败：%s", e)
+        return None
+    return f"数据概览：events 表共 {n:,} 条，时间范围 {mn} ~ {mx}"
+
+
 def get_schema_text(db_path: str | Path | None = None) -> str:
     """读真实表结构，返回带中文描述的可读文本（供 linker/planner prompt 注入）。"""
     target = Path(db_path) if db_path is not None else DB_PATH
@@ -76,6 +96,9 @@ def get_schema_text(db_path: str | Path | None = None) -> str:
         by_table.setdefault(table, []).append((column, col_type))
 
     blocks: list[str] = []
+    overview = get_overview(target)
+    if overview:
+        blocks.append(overview)
     for table, cols in by_table.items():
         title = TABLE_DESCRIPTIONS.get(table, table)
         lines = [f"表 {table}（{title}）："]
