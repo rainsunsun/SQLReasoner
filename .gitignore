@@ -1,0 +1,27 @@
+# 环境变量文件（核心，禁止提交真实密钥）
+.env
+.env.local
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.venv/
+venv/
+.env/
+
+# IDE
+.vscode/
+.idea/
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 数据文件（可由 data/load_data.py 从 GH Archive 重新生成，不进 git）
+data/analytics.duckdb
+data/raw/
