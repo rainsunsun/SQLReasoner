@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from app.agents.common import format_results
-from app.llm import get_llm
+from app.llm import invoke_structured
 from app.models import AnalysisGoal, QueryResult, Verification
 
 _SYSTEM = """你是数据分析团队的质检员。请校验查询结果是否合理、口径是否正确。
@@ -18,11 +18,9 @@ _SYSTEM = """你是数据分析团队的质检员。请校验查询结果是否�
 
 
 def verify(goal: AnalysisGoal, results: list[QueryResult]) -> Verification:
-    llm = get_llm().with_structured_output(Verification, method="function_calling")
     data = format_results(results)
-    return llm.invoke(
-        [
-            ("system", _SYSTEM),
-            ("human", f"分析目标：\n{goal.model_dump_json()}\n\n查询结果：\n{data}"),
-        ]
+    return invoke_structured(
+        Verification,
+        _SYSTEM,
+        f"分析目标：\n{goal.model_dump_json()}\n\n查询结果：\n{data}",
     )

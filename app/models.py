@@ -53,5 +53,5 @@ class AnalysisReport(BaseModel):
     answer: str = Field(description="直接回答原始业务问题")
     key_findings: list[str] = Field(description="关键发现")
     evidence: str = Field(description="支撑结论的数据依据（引用真实数字）")
-    confidence: float = Field(description="结论可信度 0~1")
+    confidence: float = Field(description="结论可信度 0~1", ge=0.0, le=1.0)
     needs_review: bool = Field(default=False, description="是否需要人工复核")

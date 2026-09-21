@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from app import config
-from app.llm import get_llm
+from app.config import settings
+from app.llm import invoke_structured
 from app.models import QueryPlan, QueryResult, QueryStep
 from app.tools.db import execute_sql
 
@@ -35,12 +35,10 @@ _FIX_SYSTEM = """你是 SQL 修正专家。下面有一条执行失败的 SQL �
 
 
 def _fix_sql(step: QueryStep, error: str) -> str:
-    llm = get_llm().with_structured_output(_FixedSQL, method="function_calling")
-    out = llm.invoke(
-        [
-            ("system", _FIX_SYSTEM),
-            ("human", f"原 SQL：\n{step.sql}\n\n报错：\n{error}"),
-        ]
+    out = invoke_structured(
+        _FixedSQL,
+        _FIX_SYSTEM,
+        f"原 SQL：\n{step.sql}\n\n报错：\n{error}",
     )
     return out.sql
 
@@ -50,15 +48,15 @@ def execute(plan: QueryPlan) -> list[QueryResult]:
     for step in plan.steps:
         sql = step.sql
         result: QueryResult | None = None
-        for attempt in range(config.MAX_RETRY + 1):
+        for attempt in range(settings.max_retry + 1):
             res = execute_sql(sql)
             if res.success:
-                rows = [dict(zip(res.cols, row)) for row in res.rows]
+                rows = [dict(zip(res.cols, row, strict=True)) for row in res.rows]
                 result = QueryResult(
                     step=step.step, sql=sql, success=True, rows=rows, row_count=res.row_count
                 )
                 break
-            if attempt < config.MAX_RETRY:
+            if attempt < settings.max_retry:
                 sql = _fix_sql(step, res.error)  # 让 LLM 看报错自我修正
             else:
                 result = QueryResult(step=step.step, sql=sql, success=False, error=res.error)

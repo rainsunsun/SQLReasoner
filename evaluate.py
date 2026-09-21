@@ -17,14 +17,9 @@
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
-
-# Windows 终端默认 GBK，强制 UTF-8 避免中文/符号打印报错（也修掉乱码）
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from langgraph.types import Command
 from pydantic import BaseModel, Field
@@ -34,6 +29,9 @@ from app.graph.workflow import build_graph
 from app.llm import get_llm
 from app.tools.db import execute_sql
 from data.eval.questions import QUESTIONS
+
+# Windows 终端默认 GBK，强制 UTF-8 避免中文/符号打印报错（必须在任何 print 之前）
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 # ---------- 判题：确定性、可复现（不引入 LLM 判题 bias） ----------
@@ -157,7 +155,7 @@ def _render_report(rows, a_exec, a_ok, a_end2end, b_exec, b_ok, b_end2end, c_exe
         return f"{x}/{n} = {x / n * 100:.0f}%"
 
     lines = []
-    lines.append(f"# 数据分析多智能体 评估报告\n")
+    lines.append("# 数据分析多智能体 评估报告\n")
     lines.append(f"> 生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}　评估集规模：{n} 问（单表聚合类问题，答案预先算好）\n")
     lines.append("## 汇总指标\n")
     lines.append("| 指标 | single-shot（单 LLM） | multi-agent（多 agent+修复） | no-repair（多 agent 不修复） |")

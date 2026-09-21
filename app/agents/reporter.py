@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from app.agents.common import format_results
-from app.llm import get_llm
+from app.llm import invoke_structured
 from app.models import AnalysisGoal, AnalysisReport, QueryResult, Verification
 
 _SYSTEM = """你是数据分析团队的报告撰写人。基于查询结果，产出一份面向业务方的分析报告。
@@ -22,17 +22,12 @@ def report(
     results: list[QueryResult],
     verification: Verification,
 ) -> AnalysisReport:
-    llm = get_llm().with_structured_output(AnalysisReport, method="function_calling")
     data = format_results(results)
-    return llm.invoke(
-        [
-            ("system", _SYSTEM),
-            (
-                "human",
-                f"原始业务问题：{question}\n\n"
-                f"分析目标：\n{goal.model_dump_json()}\n\n"
-                f"查询结果：\n{data}\n\n"
-                f"校验结论：passed={verification.passed}, issues={verification.issues}, note={verification.note}",
-            ),
-        ]
+    return invoke_structured(
+        AnalysisReport,
+        _SYSTEM,
+        f"原始业务问题：{question}\n\n"
+        f"分析目标：\n{goal.model_dump_json()}\n\n"
+        f"查询结果：\n{data}\n\n"
+        f"校验结论：passed={verification.passed}, issues={verification.issues}, note={verification.note}",
     )

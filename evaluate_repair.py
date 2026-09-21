@@ -9,15 +9,13 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-
-from app import config
 from app.agents.executor import _fix_sql
+from app.config import settings
 from app.models import QueryStep
 from app.tools.db import execute_sql
+
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # (故意注入错误的 SQL, 错误类型说明)
 BROKEN: list[tuple[str, str]] = [
@@ -33,18 +31,18 @@ BROKEN: list[tuple[str, str]] = [
 
 
 def repair(sql: str, desc: str) -> tuple[bool, str]:
-    for attempt in range(config.MAX_RETRY + 1):
+    for attempt in range(settings.max_retry + 1):
         res = execute_sql(sql)
         if res.success:
             return True, sql
-        if attempt < config.MAX_RETRY:
+        if attempt < settings.max_retry:
             sql = _fix_sql(QueryStep(step=1, purpose=desc, sql=sql), res.error)
     return False, sql
 
 
 if __name__ == "__main__":
     ok = 0
-    print(f"MAX_RETRY = {config.MAX_RETRY}\n")
+    print(f"MAX_RETRY = {settings.max_retry}\n")
     for sql, desc in BROKEN:
         fixed, final = repair(sql, desc)
         print(f"{'✓' if fixed else '✗'} [{desc}] → {final[:80]}")

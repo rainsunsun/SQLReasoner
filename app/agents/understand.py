@@ -1,7 +1,7 @@
 """需求分析 agent：把自然语言业务问题翻译成可执行的分析目标。"""
 from __future__ import annotations
 
-from app.llm import get_llm
+from app.llm import invoke_structured
 from app.models import AnalysisGoal
 
 _SYSTEM = """你是数据分析团队的需求分析师。用户会提出一个关于 GitHub 开源活动数据的业务问题，
@@ -20,5 +20,4 @@ _SYSTEM = """你是数据分析团队的需求分析师。用户会提出一个�
 
 
 def understand(question: str) -> AnalysisGoal:
-    llm = get_llm().with_structured_output(AnalysisGoal, method="function_calling")
-    return llm.invoke([("system", _SYSTEM), ("human", question)])
+    return invoke_structured(AnalysisGoal, _SYSTEM, question)

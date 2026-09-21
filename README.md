@@ -56,6 +56,8 @@
 | 结构化输出 | Pydantic + `with_structured_output` |
 | 数据仓库 | DuckDB（read_only 只读连接） |
 | 数据源 | GH Archive 真实 GitHub 事件 |
+| 配置/校验 | pydantic-settings（缺 key / 越界值 fail-fast） |
+| 质量保障 | pytest + ruff + GitHub Actions CI |
 
 ## 目录结构
 
@@ -73,14 +75,17 @@ data/
 evaluate.py         # 三组对照评估（多 agent vs 单 LLM vs 无修复）
 evaluate_repair.py  # self-repair 压力测试
 main.py             # CLI 入口
+tests/              # pytest 单测（config / db / models / workflow / llm）
+pyproject.toml      # 依赖 + pytest/ruff 配置
+.github/workflows/  # CI：push 自动跑 ruff + pytest
 docs/RESUME.md      # 简历 + 面试钩子
 ```
 
 ## 快速开始
 
 ```bash
-# 1. 装依赖（建议独立 venv；见下方「环境说明」）
-pip install -r requirements.txt
+# 1. 装依赖（含 dev：pytest/ruff；建议独立 venv，见下方「环境说明」）
+pip install -e ".[dev]"
 
 # 2. 配 .env（LLM_API_KEY / LLM_BASE_URL / LLM_MODEL）
 
@@ -113,9 +118,26 @@ python data/load_data.py --date 2026-09-01 --hours 24   # 扩数据（拉更多�
 - self-repair 压力测试：8 条注入错误 SQL，修复率 **8/8**。
 - 基线 0% 的根因：单 LLM 一次调用同时生成 SQL 和答案，答案写于「看到查询结果之前」，只能编数字 —— **「SQL 能跑 ≠ 结论对」**。
 
+## 工程化与稳健性
+
+不是「能跑」就完事，做了这些让它经得起拷打：
+
+- **配置校验**：pydantic-settings 加载 .env，温度越界 / 重试为负 fail-fast；API key 缺失或仍为占位符时调用 LLM 直接抛错（不带假 key 跑出诡异结果）。
+- **LLM 稳健性**：单次请求超时（`request_timeout`）+ 瞬时错误自动重试（`max_retries`）；结构化输出失败自动重试（`invoke_structured` 统一入口）。
+- **SQL 守卫**：DuckDB `read_only` 连接 + 白名单校验（只放行单条只读 SELECT/WITH，拒绝写语句与多语句注入）+ 上下文管理器杜绝连接泄漏。
+- **日志**：统一 logging 输出到 stderr，不污染主流程打印；CLI 入口捕获异常给干净报错，而非裸 traceback。
+- **测试**：pytest 单元测试（配置校验 / SQL 守卫 / 领域模型 / 路由逻辑 / LLM 客户端），全部离线可跑、不依赖真实数据。
+- **CI**：GitHub Actions，push 自动跑 `ruff check` + `pytest`。
+
+```bash
+pip install -e ".[dev]"
+pytest -q          # 单元测试
+ruff check .       # 代码检查
+```
+
 ## 环境说明
 
-- 本项目目前**未建独立 venv**，开发时复用 `agent_qz` 的 venv（`D:\学习日志\agent_qz\.venv\Scripts\python.exe`）。建议后续建独立环境：`python -m venv .venv && .venv\Scripts\pip install -r requirements.txt`。
+- 本项目目前**未建独立 venv**，开发时复用 `agent_qz` 的 venv（`D:\学习日志\agent_qz\.venv\Scripts\python.exe`）。正式环境建议独立：`python -m venv .venv && .venv\Scripts\pip install -e ".[dev]"`。
 - 终端中文乱码是 Windows GBK 显示问题，代码已 `sys.stdout.reconfigure(utf-8)`，报告以 `data/eval/eval_report.md` 为准。
 
 ## 已知边界

@@ -20,18 +20,20 @@ understand（需求分析）→ plan（规划拆 SQL）→ execute（**真执行
 - `data/eval/`：评估集 + 报告
 - `docs/RESUME.md`：简历 + 评估结果 + 面试钩子
 
-## 怎么跑（重要：本项目没建自己的 venv）
-
-用 `agent_qz` 的 venv（duckdb/langgraph/langchain 都装在那里）：
+## 怎么跑（本项目复用 agent_qz 的 venv，duckdb/langgraph/langchain 都装在那里）
 
 ```bash
 D:\学习日志\agent_qz\.venv\Scripts\python.exe main.py "问题"          # 单次问问题
 D:\学习日志\agent_qz\.venv\Scripts\python.exe evaluate.py             # 跑 12 问评估
 D:\学习日志\agent_qz\.venv\Scripts\python.exe evaluate_repair.py      # self-repair 压力测试
+D:\学习日志\agent_qz\.venv\Scripts\python.exe -m pytest -q             # 单元测试（17 个）
+D:\学习日志\agent_qz\.venv\Scripts\python.exe -m ruff check .          # 代码检查
 D:\学习日志\agent_qz\.venv\Scripts\python.exe data/load_data.py --date 2026-09-01 --hours 2  # 扩数据
 ```
 
-`.env` 里有 DeepSeek API key。终端中文乱码是 GBK 显示问题，代码里已 `sys.stdout.reconfigure(utf-8)`，报告以 `data/eval/eval_report.md` 为准。
+正式环境用 `pip install -e ".[dev]"`（见 pyproject.toml），别长期借用 agent_qz 的 venv。
+
+`.env` 里有 DeepSeek API key（git 已忽略）。终端中文乱码是 GBK 显示问题，代码里已 `sys.stdout.reconfigure(utf-8)`，报告以 `data/eval/eval_report.md` 为准。
 
 ## 评估结果（真实数字，2026-09-22）
 
@@ -49,4 +51,5 @@ D:\学习日志\agent_qz\.venv\Scripts\python.exe data/load_data.py --date 2026-
 ## 注意
 
 - 这是「数据分析」方向，不是隔壁 `agent_qz` 的「招聘」方向（那是最早放弃的方向）。
-- 无 git；无独立 venv。
+- GitHub 仓库：https://github.com/rainsunsun/SQLReasoner.git（改完代码记得 commit + push）。
+- 工程化已落地：pydantic-settings 配置校验 / LLM 超时重试 / DuckDB read_only + SELECT 白名单 / pytest 单测 / ruff / GitHub Actions CI，详见 README「工程化与稳健性」。

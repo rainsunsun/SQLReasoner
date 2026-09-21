@@ -1,7 +1,7 @@
 """规划 agent：把分析目标拆解成按顺序执行的 SQL 查询计划。"""
 from __future__ import annotations
 
-from app.llm import get_llm
+from app.llm import invoke_structured
 from app.models import AnalysisGoal, QueryPlan
 
 _SYSTEM = """你是数据分析团队的规划师。根据需求分析师给的分析目标，拆解出按顺序执行的 SQL 查询步骤。
@@ -24,7 +24,4 @@ _SYSTEM = """你是数据分析团队的规划师。根据需求分析师给的�
 
 
 def plan(goal: AnalysisGoal) -> QueryPlan:
-    llm = get_llm().with_structured_output(QueryPlan, method="function_calling")
-    return llm.invoke(
-        [("system", _SYSTEM), ("human", f"分析目标：\n{goal.model_dump_json()}")]
-    )
+    return invoke_structured(QueryPlan, _SYSTEM, f"分析目标：\n{goal.model_dump_json()}")
